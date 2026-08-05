@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My Ledger — Expense Tracker</title>
+<meta name="theme-color" content="#0F172A">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0F172A;
+    --ledger:#16213A;
+    --ledger-2:#1C2A47;
+    --line:#28365a;
+    --gold:#D4A94A;
+    --gold-soft:#E8C97A;
+    --mint:#4ADE80;
+    --coral:#F87171;
+    --text:#F1F5F9;
+    --muted:#94A3B8;
+    --radius:16px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    background:
+      radial-gradient(circle at 15% -10%, #1a2847 0%, transparent 55%),
+      var(--ink);
+    color:var(--text);
+    font-family:'Inter',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:100px;
+    min-height:100%;
+  }
+  ::selection{ background:var(--gold); color:var(--ink); }
+
+  /* ---------- Header / Stamp ---------- */
+  header{
+    padding:28px 20px 20px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:18px;
+  }
+  .brand{
+    display:flex; align-items:center; gap:10px;
+    align-self:flex-start;
+  }
+  .brand-mark{
+    width:30px; height:30px; border-radius:8px;
+    background:var(--gold);
+    display:flex; align-items:center; justify-content:center;
+    color:var(--ink); font-family:'Fraunces',serif; font-weight:700; font-size:16px;
+  }
+  .brand-name{
+    font-family:'Fraunces',serif; font-weight:600; font-size:15px;
+    letter-spacing:.03em; color:var(--muted);
+  }
+
+  .stamp-wrap{
+    position:relative;
+    width:220px; height:220px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .stamp{
+    width:200px; height:200px;
+    border-radius:50%;
+    border:2.5px dashed rgba(212,169,74,.55);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    transform:rotate(-3deg);
+    transition:transform .4s ease;
+    background:radial-gradient(circle, rgba(212,169,74,.06), transparent 70%);
+  }
+  .stamp:active{ transform:rotate(-3deg) scale(.97); }
+  .stamp-label{
+    font-size:11px; letter-spacing:.15em; text-transform:uppercase;
+    color:var(--muted); margin-bottom:6px;
+  }
+  .stamp-amount{
+    font-family:'Fraunces',serif; font-weight:600; font-size:34px;
+    line-height:1.1;
+  }
+  .stamp-amount.neg{ color:var(--coral); }
+  .stamp-amount.pos{ color:var(--gold-soft); }
+  .stamp-month{
+    margin-top:8px; font-size:11px; color:var(--muted); letter-spacing:.05em;
+  }
+
+  .summary-row{
+    display:flex; gap:10px; width:100%; max-width:420px;
+  }
+  .summary-pill{
+    flex:1; background:var(--ledger); border:1px solid var(--line);
+    border-radius:12px; padding:10px 12px; text-align:center;
+  }
+  .summary-pill .k{ font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
+  .summary-pill .v{ font-family:'JetBrains Mono',monospace; font-weight:700; font-size:15px; margin-top:3px; }
+  .summary-pill.income .v{ color:var(--mint); }
+  .summary-pill.expense .v{ color:var(--coral); }
+
+  /* ---------- Month nav ---------- */
+  .month-nav{
+    display:flex; align-items:center; justify-content:center; gap:16px;
+    margin:22px auto 6px; max-width:420px; padding:0 20px;
+  }
+  .month-nav button{
+    background:var(--ledger); border:1px solid var(--line); color:var(--gold-soft);
+    width:34px; height:34px; border-radius:10px; font-size:16px; cursor:pointer;
+  }
+  .month-nav .label{ font-family:'Fraunces',serif; font-size:16px; font-weight:600; min-width:150px; text-align:center; }
+
+  /* ---------- Ledger list ---------- */
+  main{ max-width:520px; margin:0 auto; padding:18px 16px 0; }
+  .day-group{ margin-bottom:22px; }
+  .day-heading{
+    display:flex; align-items:baseline; gap:8px;
+    font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em;
+    margin:0 4px 8px;
+  }
+  .day-heading::after{
+    content:''; flex:1; height:1px;
+    background:repeating-linear-gradient(90deg, var(--line) 0 4px, transparent 4px 8px);
+  }
+  .entry{
+    display:flex; align-items:center; gap:12px;
+    background:var(--ledger);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:12px 14px;
+    margin-bottom:8px;
+  }
+  .entry .cat{
+    width:38px; height:38px; border-radius:10px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:17px; flex-shrink:0;
+    background:var(--ledger-2);
+  }
+  .entry .mid{ flex:1; min-width:0; }
+  .entry .note{ font-size:14.5px; font-weight:500; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .entry .meta{ font-size:12px; color:var(--muted); margin-top:2px; }
+  .entry .amt{
+    font-family:'JetBrains Mono',monospace; font-weight:700; font-size:15px; flex-shrink:0;
+  }
+  .entry .amt.income{ color:var(--mint); }
+  .entry .amt.expense{ color:var(--coral); }
+  .entry .del{
+    background:none; border:none; color:var(--muted); font-size:17px; cursor:pointer;
+    padding:2px 4px; flex-shrink:0; opacity:.6;
+  }
+  .entry .del:active{ opacity:1; color:var(--coral); }
+
+  .empty{
+    text-align:center; padding:50px 20px; color:var(--muted);
+  }
+  .empty .big{ font-size:38px; margin-bottom:10px; }
+  .empty .hint{ font-size:13px; margin-top:6px; }
+
+  /* ---------- Category breakdown ---------- */
+  .breakdown{
+    max-width:520px; margin:8px auto 0; padding:0 16px;
+  }
+  .breakdown h3{
+    font-family:'Fraunces',serif; font-size:14px; font-weight:600; color:var(--muted);
+    margin:20px 4px 10px; letter-spacing:.03em;
+  }
+  .bar-row{ display:flex; align-items:center; gap:10px; margin-bottom:9px; }
+  .bar-row .cat-label{ width:82px; font-size:12.5px; color:var(--text); flex-shrink:0; }
+  .bar-track{ flex:1; height:8px; background:var(--ledger-2); border-radius:4px; overflow:hidden; }
+  .bar-fill{ height:100%; background:linear-gradient(90deg, var(--gold), var(--gold-soft)); border-radius:4px; }
+  .bar-row .bar-amt{ font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--muted); width:64px; text-align:right; flex-shrink:0; }
+
+  /* ---------- FAB ---------- */
+  .fab{
+    position:fixed; bottom:22px; left:50%; transform:translateX(-50%);
+    background:var(--gold); color:var(--ink);
+    border:none; border-radius:16px;
+    padding:14px 30px;
+    font-family:'Fraunces',serif; font-weight:700; font-size:15px;
+    display:flex; align-items:center; gap:8px;
+    box-shadow:0 8px 24px rgba(212,169,74,.35);
+    cursor:pointer;
+    z-index:40;
+  }
+  .fab:active{ transform:translateX(-50%) scale(.96); }
+
+  /* ---------- Sheet (add entry) ---------- */
+  .overlay{
+    position:fixed; inset:0; background:rgba(6,10,20,.65);
+    backdrop-filter:blur(2px);
+    opacity:0; pointer-events:none; transition:opacity .25s ease;
+    z-index:50;
+  }
+  .overlay.show{ opacity:1; pointer-events:auto; }
+  .sheet{
+    position:fixed; left:0; right:0; bottom:0;
+    background:var(--ledger);
+    border-top:1px solid var(--line);
+    border-radius:24px 24px 0 0;
+    padding:22px 20px calc(24px + env(safe-area-inset-bottom));
+    transform:translateY(100%);
+    transition:transform .3s cubic-bezier(.32,.72,0,1);
+    z-index:51;
+    max-height:88vh; overflow-y:auto;
+  }
+  .sheet.show{ transform:translateY(0); }
+  .sheet-handle{ width:36px; height:4px; background:var(--line); border-radius:2px; margin:0 auto 18px; }
+  .sheet h2{ font-family:'Fraunces',serif; font-size:19px; margin-bottom:18px; }
+
+  .type-toggle{ display:flex; background:var(--ledger-2); border-radius:12px; padding:4px; margin-bottom:16px; }
+  .type-toggle button{
+    flex:1; padding:10px; border:none; background:none; color:var(--muted);
+    font-family:'Inter'; font-weight:600; font-size:13.5px; border-radius:9px; cursor:pointer;
+  }
+  .type-toggle button.active.expense{ background:var(--coral); color:#2a0e0e; }
+  .type-toggle button.active.income{ background:var(--mint); color:#0e2a17; }
+
+  .field{ margin-bottom:14px; }
+  .field label{ display:block; font-size:11.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); margin-bottom:6px; }
+  .field input, .field select{
+    width:100%; background:var(--ink); border:1px solid var(--line); color:var(--text);
+    padding:12px 13px; border-radius:11px; font-size:15px; font-family:'Inter';
+  }
+  .field input:focus, .field select:focus{ outline:none; border-color:var(--gold); }
+  .amount-input{ display:flex; align-items:center; background:var(--ink); border:1px solid var(--line); border-radius:11px; padding:0 13px; }
+  .amount-input span{ color:var(--gold); font-weight:700; font-family:'JetBrains Mono'; }
+  .amount-input input{ border:none; background:none; padding:12px 8px; font-family:'JetBrains Mono'; font-size:18px; font-weight:700; }
+
+  .cat-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+  .cat-opt{
+    background:var(--ink); border:1px solid var(--line); border-radius:11px;
+    padding:10px 4px; text-align:center; cursor:pointer; color:var(--muted); font-size:11px;
+  }
+  .cat-opt .ic{ font-size:19px; display:block; margin-bottom:4px; }
+  .cat-opt.active{ border-color:var(--gold); color:var(--text); background:var(--ledger-2); }
+
+  .save-btn{
+    width:100%; background:var(--gold); color:var(--ink); border:none;
+    padding:15px; border-radius:12px; font-family:'Fraunces',serif; font-weight:700; font-size:15.5px;
+    margin-top:6px; cursor:pointer;
+  }
+  .save-btn:active{ transform:scale(.98); }
+
+  .toolbar{ display:flex; justify-content:center; gap:10px; margin:18px auto 0; max-width:420px; padding:0 16px; }
+  .toolbar button{
+    background:none; border:1px solid var(--line); color:var(--muted);
+    padding:7px 14px; border-radius:20px; font-size:12px; cursor:pointer;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-mark">₹</div>
+    <div class="brand-name">MY LEDGER</div>
+  </div>
+
+  <div class="stamp-wrap">
+    <div class="stamp" id="stamp">
+      <div class="stamp-label">Balance</div>
+      <div class="stamp-amount" id="balanceAmt">₹0</div>
+      <div class="stamp-month" id="stampMonth">—</div>
+    </div>
+  </div>
+
+  <div class="summary-row">
+    <div class="summary-pill income">
+      <div class="k">In</div>
+      <div class="v" id="totalIncome">₹0</div>
+    </div>
+    <div class="summary-pill expense">
+      <div class="k">Out</div>
+      <div class="v" id="totalExpense">₹0</div>
+    </div>
+  </div>
+</header>
+
+<div class="month-nav">
+  <button id="prevMonth">‹</button>
+  <div class="label" id="monthLabel">—</div>
+  <button id="nextMonth">›</button>
+</div>
+
+<main id="entriesRoot"></main>
+
+<div class="breakdown" id="breakdownRoot"></div>
+
+<div class="toolbar">
+  <button id="exportBtn">Export CSV</button>
+  <button id="clearBtn">Clear month</button>
+</div>
+
+<button class="fab" id="openSheet">+ &nbsp;Add entry</button>
+
+<div class="overlay" id="overlay"></div>
+<div class="sheet" id="sheet">
+  <div class="sheet-handle"></div>
+  <h2>New entry</h2>
+
+  <div class="type-toggle">
+    <button type="button" class="active expense" data-type="expense">Expense</button>
+    <button type="button" class="income" data-type="income">Income</button>
+  </div>
+
+  <div class="field">
+    <label>Amount</label>
+    <div class="amount-input">
+      <span>₹</span>
+      <input type="number" id="amountInput" inputmode="decimal" placeholder="0" min="0" step="0.01">
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Category</label>
+    <div class="cat-grid" id="catGrid"></div>
+  </div>
+
+  <div class="field">
+    <label>Note</label>
+    <input type="text" id="noteInput" placeholder="e.g. Auto to office, groceries...">
+  </div>
+
+  <div class="field">
+    <label>Date</label>
+    <input type="date" id="dateInput">
+  </div>
+
+  <button class="save-btn" id="saveBtn">Save entry</button>
+</div>
+
+<script>
+(function(){
+  const CATS = {
+    expense: [
+      {id:'food', ic:'🍛', label:'Food'},
+      {id:'travel', ic:'🚌', label:'Travel'},
+      {id:'bills', ic:'💡', label:'Bills'},
+      {id:'shopping', ic:'🛍️', label:'Shopping'},
+      {id:'health', ic:'💊', label:'Health'},
+      {id:'rent', ic:'🏠', label:'Rent'},
+      {id:'fun', ic:'🎬', label:'Fun'},
+      {id:'other', ic:'📌', label:'Other'},
+    ],
+    income: [
+      {id:'salary', ic:'💼', label:'Salary'},
+      {id:'freelance', ic:'💻', label:'Freelance'},
+      {id:'gift', ic:'🎁', label:'Gift'},
+      {id:'other', ic:'📌', label:'Other'},
+    ]
+  };
+  const CAT_MAP = {};
+  [...CATS.expense, ...CATS.income].forEach(c => CAT_MAP[c.id] = c);
+
+  const STORAGE_KEY = 'myledger_entries_v1';
+  let memoryFallback = [];
+  const storageOk = (function(){
+    try { const t='__t'; localStorage.setItem(t,'1'); localStorage.removeItem(t); return true; }
+    catch(e){ return false; }
+  })();
+  function loadEntries(){
+    if(!storageOk) return memoryFallback;
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+    catch(e){ return []; }
+  }
+  let entries = loadEntries();
+  let currentType = 'expense';
+  let currentCat = 'food';
+  let viewDate = new Date();
+
+  const $ = sel => document.querySelector(sel);
+  const fmt = n => '₹' + Math.round(n).toLocaleString('en-IN');
+
+  function save(){
+    if(!storageOk){ memoryFallback = entries; return; }
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); }
+    catch(e){ /* storage full or blocked — data stays in memory for this session */ }
+  }
+
+  function monthKey(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+
+  function entriesForMonth(){
+    const mk = monthKey(viewDate);
+    return entries.filter(e => e.date.startsWith(mk));
+  }
+
+  function renderCatGrid(){
+    const grid = $('#catGrid');
+    grid.innerHTML = '';
+    CATS[currentType].forEach(c => {
+      const el = document.createElement('div');
+      el.className = 'cat-opt' + (c.id === currentCat ? ' active' : '');
+      el.innerHTML = `<span class="ic">${c.ic}</span>${c.label}`;
+      el.onclick = () => { currentCat = c.id; renderCatGrid(); };
+      grid.appendChild(el);
+    });
+  }
+
+  function render(){
+    const monthEntries = entriesForMonth().sort((a,b)=> b.date.localeCompare(a.date) || b.ts - a.ts);
+    const income = monthEntries.filter(e=>e.type==='income').reduce((s,e)=>s+e.amount,0);
+    const expense = monthEntries.filter(e=>e.type==='expense').reduce((s,e)=>s+e.amount,0);
+    const balance = income - expense;
+
+    $('#totalIncome').textContent = fmt(income);
+    $('#totalExpense').textContent = fmt(expense);
+    $('#balanceAmt').textContent = fmt(Math.abs(balance));
+    $('#balanceAmt').className = 'stamp-amount ' + (balance < 0 ? 'neg' : 'pos');
+    const mLabel = viewDate.toLocaleDateString('en-IN', {month:'long', year:'numeric'});
+    $('#monthLabel').textContent = mLabel;
+    $('#stampMonth').textContent = mLabel;
+
+    // entries grouped by day
+    const root = $('#entriesRoot');
+    root.innerHTML = '';
+    if(monthEntries.length === 0){
+      root.innerHTML = `<div class="empty"><div class="big">📖</div>Ledger's empty this month<div class="hint">Tap "Add entry" to log your first transaction</div></div>`;
+    } else {
+      const groups = {};
+      monthEntries.forEach(e => { (groups[e.date] = groups[e.date] || []).push(e); });
+      Object.keys(groups).sort().reverse().forEach(date => {
+        const dEl = document.createElement('div');
+        dEl.className = 'day-group';
+        const dLabel = new Date(date+'T00:00:00').toLocaleDateString('en-IN', {weekday:'short', day:'numeric', month:'short'});
+        dEl.innerHTML = `<div class="day-heading">${dLabel}</div>`;
+        groups[date].forEach(e => {
+          const cat = CAT_MAP[e.category] || {ic:'📌'};
+          const row = document.createElement('div');
+          row.className = 'entry';
+          row.innerHTML = `
+            <div class="cat">${cat.ic}</div>
+            <div class="mid">
+              <div class="note">${e.note || cat.label}</div>
+              <div class="meta">${cat.label}</div>
+            </div>
+            <div class="amt ${e.type}">${e.type==='income'?'+':'-'} ${fmt(e.amount)}</div>
+            <button class="del" data-id="${e.id}">✕</button>
+          `;
+          dEl.appendChild(row);
+        });
+        root.appendChild(dEl);
+      });
+    }
+
+    // category breakdown (expenses only)
+    const bd = $('#breakdownRoot');
+    const catTotals = {};
+    monthEntries.filter(e=>e.type==='expense').forEach(e => {
+      catTotals[e.category] = (catTotals[e.category]||0) + e.amount;
+    });
+    const maxCat = Math.max(1, ...Object.values(catTotals));
+    const sortedCats = Object.entries(catTotals).sort((a,b)=>b[1]-a[1]);
+    if(sortedCats.length){
+      bd.innerHTML = '<h3>Where it went</h3>' + sortedCats.map(([cid, amt]) => {
+        const cat = CAT_MAP[cid] || {label:cid};
+        const pct = (amt/maxCat*100).toFixed(0);
+        return `<div class="bar-row">
+          <div class="cat-label">${cat.label}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+          <div class="bar-amt">${fmt(amt)}</div>
+        </div>`;
+      }).join('');
+    } else {
+      bd.innerHTML = '';
+    }
+
+    root.querySelectorAll('.del').forEach(btn => {
+      btn.onclick = () => {
+        entries = entries.filter(e => e.id !== btn.dataset.id);
+        save(); render();
+      };
+    });
+  }
+
+  // sheet open/close
+  const overlay = $('#overlay'), sheet = $('#sheet');
+  function openSheet(){
+    $('#dateInput').value = new Date().toISOString().slice(0,10);
+    overlay.classList.add('show'); sheet.classList.add('show');
+  }
+  function closeSheet(){
+    overlay.classList.remove('show'); sheet.classList.remove('show');
+  }
+  $('#openSheet').onclick = openSheet;
+  overlay.onclick = closeSheet;
+
+  document.querySelectorAll('.type-toggle button').forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll('.type-toggle button').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      currentType = btn.dataset.type;
+      currentCat = CATS[currentType][0].id;
+      renderCatGrid();
+    };
+  });
+
+  $('#saveBtn').onclick = () => {
+    const amount = parseFloat($('#amountInput').value);
+    if(!amount || amount <= 0){ $('#amountInput').focus(); return; }
+    const date = $('#dateInput').value || new Date().toISOString().slice(0,10);
+    entries.push({
+      id: Date.now().toString(36)+Math.random().toString(36).slice(2,7),
+      type: currentType,
+      category: currentCat,
+      amount, note: $('#noteInput').value.trim(),
+      date, ts: Date.now()
+    });
+    save();
+    $('#amountInput').value=''; $('#noteInput').value='';
+    closeSheet();
+    viewDate = new Date(date+'T00:00:00');
+    render();
+  };
+
+  $('#prevMonth').onclick = () => { viewDate.setMonth(viewDate.getMonth()-1); render(); };
+  $('#nextMonth').onclick = () => { viewDate.setMonth(viewDate.getMonth()+1); render(); };
+
+  $('#exportBtn').onclick = () => {
+    const monthEntries = entriesForMonth().sort((a,b)=>a.date.localeCompare(b.date));
+    let csv = 'Date,Type,Category,Note,Amount\n';
+    monthEntries.forEach(e => {
+      const catLabel = (CAT_MAP[e.category] && CAT_MAP[e.category].label) || e.category;
+      csv += `${e.date},${e.type},${catLabel},"${(e.note||'').replace(/"/g,'""')}",${e.amount}\n`;
+    });
+    const blob = new Blob([csv], {type:'text/csv'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `ledger-${monthKey(viewDate)}.csv`;
+    a.click();
+  };
+
+  $('#clearBtn').onclick = () => {
+    if(!confirm('Delete all entries for '+viewDate.toLocaleDateString('en-IN',{month:'long',year:'numeric'})+'?')) return;
+    const mk = monthKey(viewDate);
+    entries = entries.filter(e => !e.date.startsWith(mk));
+    save(); render();
+  };
+
+  renderCatGrid();
+  render();
+
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(()=>{});
+    });
+  }
+})();
+</script>
+</body>
+</html>
